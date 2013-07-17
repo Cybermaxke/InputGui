@@ -69,7 +69,7 @@ public class InputPacketAdapter extends PacketAdapter {
 	}
 
 	@Override
-    public void onPacketSending(PacketEvent e) {
+	public void onPacketSending(PacketEvent e) {
 		PacketContainer packet = e.getPacket();
 		InputPlayer player = this.plugin.getPlayerManager().getPlayer(e.getPlayer());
 
@@ -110,7 +110,7 @@ public class InputPacketAdapter extends PacketAdapter {
 	}
 
 	@Override
-    public void onPacketReceiving(PacketEvent e) {
+	public void onPacketReceiving(PacketEvent e) {
 		PacketContainer packet = e.getPacket();
 		InputPlayer player = this.plugin.getPlayerManager().getPlayer(e.getPlayer());
 
