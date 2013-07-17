@@ -156,7 +156,11 @@ public final class InputPlayer {
 		PacketContainer packet = new PacketContainer(Packets.Server.TILE_ENTITY_DATA);
 
 		List<NbtBase<?>> tags = new ArrayList<NbtBase<?>>();
+		tags.add(NbtFactory.of("id", "Control"));
 		tags.add(NbtFactory.of("Command", text));
+		tags.add(NbtFactory.of("x", location.getBlockX()));
+		tags.add(NbtFactory.of("y", location.getBlockY()));
+		tags.add(NbtFactory.of("z", location.getBlockZ()));
 
 		packet.getIntegers().write(0, location.getBlockX());
 		packet.getIntegers().write(1, location.getBlockY());
