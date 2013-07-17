@@ -30,6 +30,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.Packets.Client;
@@ -85,21 +86,16 @@ public class InputPacketAdapter extends PacketAdapter {
 		 */
 		int id = e.getPacketID();
 		if (id == Server.BLOCK_CHANGE) {
-			/**
-			 * 
-			 * TODO: Fix
-			 * 
-			 * int x = packet.getIntegers().read(0);
-			 * int y = packet.getIntegers().read(1);
-			 * int z = packet.getIntegers().read(2);
-			 *
-			 * Location l = player.getFakeBlockLocation();
-			 * if (l.getBlockX() == x || l.getBlockY() == y || l.getBlockZ() == z) {
-			 * 	  e.setCancelled(true);
-			 *	  return;
-			 * }
-			 * 
-			 */
+			int x = packet.getIntegers().read(0);
+			int y = packet.getIntegers().read(1);
+			int z = packet.getIntegers().read(2);
+			int material = packet.getIntegers().read(3);
+
+			Location l = player.getFakeBlockLocation();
+			if (l.getBlockX() == x && l.getBlockY() == y && l.getBlockZ() == z && material != Material.COMMAND.getId()) {
+				e.setCancelled(true);
+				return;
+			}
 		/**
 		 * If this packets are send, the gui can't be open.
 		 */

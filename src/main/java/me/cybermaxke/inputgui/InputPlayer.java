@@ -115,7 +115,7 @@ public final class InputPlayer {
 
 			};
 
-			this.checkMoveTask.runTaskLater(this.plugin, 3L);
+			this.checkMoveTask.runTaskLater(this.plugin, 5L);
 		}
 	}
 
