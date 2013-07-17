@@ -25,6 +25,9 @@
  */
 package me.cybermaxke.inputgui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -33,8 +36,11 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import com.comphenix.protocol.Packets;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.wrappers.nbt.NbtBase;
+import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 
 public final class InputPlayer {
 	private static final int PACKET_TILE_EDITOR_OPEN = 0x85;
@@ -66,7 +72,12 @@ public final class InputPlayer {
 		return this.fakeBlockLoc != null;
 	}
 
-	public void setGuiOpened(boolean open) {
+	/**
+	 * Sets the gui opened, and uses the text as default.
+	 * @param open
+	 * @param text
+	 */
+	public void setGuiOpened(boolean open, String text) {
 		if (!open) {
 			if (!this.hasGuiOpened()) {
 				return;
@@ -88,7 +99,7 @@ public final class InputPlayer {
 			Location l = this.player.getLocation();
 			Vector d = l.getDirection().normalize().multiply(-2);
 			this.fakeBlockLoc = l.add(d);
-			this.openGui();
+			this.openGui(text);
 
 			if (this.checkMoveTask != null) {
 				this.checkMoveTask.cancel();
@@ -108,7 +119,11 @@ public final class InputPlayer {
 		}
 	}
 
-	private boolean openGui() {
+	public void setGuiOpened(boolean open) {
+		this.setGuiOpened(open, "");
+	}
+
+	private boolean openGui(String text) {
 		if (!this.hasGuiOpened()) {
 			return false;
 		}
@@ -122,12 +137,34 @@ public final class InputPlayer {
 		 * Sending the tile editor packet.
 		 */
 		try {
+			ProtocolLibrary.getProtocolManager().sendServerPacket(this.player, this.getTileDataPacket(this.fakeBlockLoc, text));
 			ProtocolLibrary.getProtocolManager().sendServerPacket(this.player, this.getOpenGuiPacket(this.fakeBlockLoc));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		return true;
+	}
+
+	/**
+	 * Creates a tile data packet for the location and text.
+	 * @param location
+	 * @param text
+	 * @return packet
+	 */
+	private PacketContainer getTileDataPacket(Location location, String text) {
+		PacketContainer packet = new PacketContainer(Packets.Server.TILE_ENTITY_DATA);
+
+		List<NbtBase<?>> tags = new ArrayList<NbtBase<?>>();
+		tags.add(NbtFactory.of("Command", text));
+
+		packet.getIntegers().write(0, location.getBlockX());
+		packet.getIntegers().write(1, location.getBlockY());
+		packet.getIntegers().write(2, location.getBlockZ());
+		packet.getIntegers().write(3, 2);
+		packet.getNbtModifier().write(0, NbtFactory.ofCompound("", tags));
+
+		return packet;
 	}
 
 	/**
