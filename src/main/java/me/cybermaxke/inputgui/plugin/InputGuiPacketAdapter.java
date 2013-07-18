@@ -142,7 +142,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 				 * Match the two locations.
 				 */
 				Location l = player.getFakeBlockLocation();
-				if (l != null && l.getBlockX() != x || l.getBlockY() != y || l.getBlockZ() != z) {
+				if (l == null || l.getBlockX() != x || l.getBlockY() != y || l.getBlockZ() != z) {
 					player.setCancelled();
 					return;
 				}
