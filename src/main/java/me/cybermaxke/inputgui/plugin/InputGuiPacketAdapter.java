@@ -1,29 +1,24 @@
 /**
  * 
- * This file is part of InputGui.
- *
+ * This software is part of the InputGui
+ * 
  * Copyright (c) 2013 Cybermaxke
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is furnished to do
- * so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * 
+ * InputGui is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or 
+ * any later version.
+ * 
+ * InputGui is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with InputGui. If not, see <http://www.gnu.org/licenses/>.
  * 
  */
-package me.cybermaxke.inputgui;
+package me.cybermaxke.inputgui.plugin;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -41,10 +36,10 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 
-public class InputPacketAdapter extends PacketAdapter {
+public class InputGuiPacketAdapter extends PacketAdapter {
 	private InputGuiPlugin plugin;
 
-	public InputPacketAdapter(InputGuiPlugin plugin) {
+	public InputGuiPacketAdapter(InputGuiPlugin plugin) {
 		super(plugin, ConnectionSide.BOTH, ListenerPriority.NORMAL,
 				/**
 				 * Packets from the server.
@@ -52,6 +47,7 @@ public class InputPacketAdapter extends PacketAdapter {
 				Server.BLOCK_CHANGE,
 				Server.CLOSE_WINDOW,
 				Server.OPEN_WINDOW,
+				Server.RESPAWN,
 
 				/**
 				 * Packets from the client.
@@ -72,12 +68,12 @@ public class InputPacketAdapter extends PacketAdapter {
 	@Override
 	public void onPacketSending(PacketEvent e) {
 		PacketContainer packet = e.getPacket();
-		InputPlayer player = this.plugin.getPlayerManager().getPlayer(e.getPlayer());
+		InputGuiPlayer player = this.plugin.getPlayer(e.getPlayer());
 
 		/**
 		 * If the gui is closed, return.
 		 */
-		if (!player.hasGuiOpened()) {
+		if (!player.isGuiOpen()) {
 			return;
 		}
 
@@ -92,7 +88,8 @@ public class InputPacketAdapter extends PacketAdapter {
 			int material = packet.getIntegers().read(3);
 
 			Location l = player.getFakeBlockLocation();
-			if (l.getBlockX() == x && l.getBlockY() == y && l.getBlockZ() == z && material != Material.COMMAND.getId()) {
+			if (l.getBlockX() == x && l.getBlockY() == y && l.getBlockZ() == z && 
+					material != Material.COMMAND.getId()) {
 				e.setCancelled(true);
 				return;
 			}
@@ -101,19 +98,19 @@ public class InputPacketAdapter extends PacketAdapter {
 		 */
 		} else if (id == Server.CLOSE_WINDOW ||
 				id == Server.OPEN_WINDOW) {
-			player.setGuiOpened(false);
+			player.setCancelled();
 		}
 	}
 
 	@Override
 	public void onPacketReceiving(PacketEvent e) {
 		PacketContainer packet = e.getPacket();
-		InputPlayer player = this.plugin.getPlayerManager().getPlayer(e.getPlayer());
+		InputGuiPlayer player = this.plugin.getPlayer(e.getPlayer());
 
 		/**
 		 * If the gui is closed, return.
 		 */
-		if (!player.hasGuiOpened()) {
+		if (!player.isGuiOpen()) {
 			return;
 		}
 
@@ -146,7 +143,7 @@ public class InputPacketAdapter extends PacketAdapter {
 				 */
 				Location l = player.getFakeBlockLocation();
 				if (l.getBlockX() != x || l.getBlockY() != y || l.getBlockZ() != z) {
-					player.setGuiOpened(false);
+					player.setCancelled();
 					return;
 				}
 
@@ -162,12 +159,7 @@ public class InputPacketAdapter extends PacketAdapter {
 
 				String string = builder.toString();
 				e.setCancelled(true);
-				player.setGuiOpened(false);
-
-				/**
-				 * Test the string!
-				 */
-				e.getPlayer().sendMessage(string);
+				player.setConfirmed(string);
 			} catch (IOException ex) {
 				ex.printStackTrace();
 			}
@@ -182,7 +174,7 @@ public class InputPacketAdapter extends PacketAdapter {
 				id == Client.BLOCK_DIG ||
 				id == Client.BLOCK_ITEM_SWITCH ||
 				id == Client.SET_CREATIVE_SLOT) {
-			player.setGuiOpened(false);
+			player.setCancelled();
 		}
 	}
 }
