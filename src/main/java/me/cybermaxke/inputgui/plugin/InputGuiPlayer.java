@@ -22,6 +22,7 @@ package me.cybermaxke.inputgui.plugin;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -82,7 +83,7 @@ public class InputGuiPlayer implements InputPlayer {
 
 	@Override
 	public void openGui(InputGui gui) {
-		this.gui.onCancel(this);
+		this.setCancelled();
 		this.gui = gui;
 
 		Location playerLoc = this.player.getLocation();
@@ -102,10 +103,6 @@ public class InputGuiPlayer implements InputPlayer {
 			e.printStackTrace();
 		}
 
-		if (this.checkMoveTask != null) {
-			this.checkMoveTask.cancel();
-		}
-
 		this.checkMoveTask = new BukkitRunnable() {
 
 			@Override
@@ -116,7 +113,7 @@ public class InputGuiPlayer implements InputPlayer {
 
 		};
 
-		this.checkMoveTask.runTaskLater(this.plugin, 5L);
+		this.checkMoveTask.runTaskLater(this.plugin, 17L);
 	}
 
 	public void setCancelled() {
@@ -128,6 +125,11 @@ public class InputGuiPlayer implements InputPlayer {
 		if (this.gui != null) {
 			this.gui.onCancel(this);
 			this.gui = null;
+		}
+
+		if (this.fakeBlockLoc != null) {
+			Block block = this.fakeBlockLoc.getBlock();
+			this.player.sendBlockChange(this.fakeBlockLoc, block.getTypeId(), block.getData());
 		}
 	}
 
