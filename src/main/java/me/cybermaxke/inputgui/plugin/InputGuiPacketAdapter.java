@@ -21,11 +21,22 @@
 package me.cybermaxke.inputgui.plugin;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 
+import me.cybermaxke.inputgui.api.event.CommandBlockEditEvent;
+import me.cybermaxke.inputgui.api.event.ItemRenameEvent;
+
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.CommandBlock;
+import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.inventory.InventoryView;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.Packets.Client;
@@ -96,8 +107,8 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 		/**
 		 * If this packets are send, the gui can't be open.
 		 */
-		} else if (id == Server.CLOSE_WINDOW ||
-				id == Server.OPEN_WINDOW) {
+		} else if (player.isCheckingPackets() && (id == Server.CLOSE_WINDOW ||
+				id == Server.OPEN_WINDOW)) {
 			player.setCancelled();
 		}
 	}
@@ -107,73 +118,125 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 		PacketContainer packet = e.getPacket();
 		InputGuiPlayer player = this.plugin.getPlayer(e.getPlayer());
 
-		/**
-		 * If the gui is closed, return.
-		 */
-		if (!player.isGuiOpen()) {
-			return;
-		}
-
 		int id = e.getPacketID();
 		if (id == Client.CUSTOM_PAYLOAD) {
 			String tag = packet.getStrings().read(0);
+			byte[] data = packet.getByteArrays().read(0);
 
 			/**
 			 * This is the tag that is used by the command block.
 			 */
-			if (!tag.equals("MC|AdvCdm")) {
-				return;
-			}
+			if (tag.equals("MC|AdvCdm")) {
+				ByteArrayInputStream bis = new ByteArrayInputStream(data);
+				DataInputStream dis = new DataInputStream(bis);
 
-			byte[] data = packet.getByteArrays().read(0);
+				try {
+					/**
+					 * Reading the coords of the fake block location.
+					 */
+					int x = dis.readInt();
+					int y = dis.readInt();
+					int z = dis.readInt();
 
-			ByteArrayInputStream bis = new ByteArrayInputStream(data);
-			DataInputStream dis = new DataInputStream(bis);
+					/**
+					 * Reading the string.
+					 */
+					StringBuilder builder = new StringBuilder();
 
-			try {
-				/**
-				 * Reading the coords of the fake block location.
-				 */
-				int x = dis.readInt();
-				int y = dis.readInt();
-				int z = dis.readInt();
+					short stringLength = dis.readShort();
+					for (int i = 0; i < stringLength; i++) {
+						builder.append(dis.readChar());
+					}
 
-				/**
-				 * Match the two locations.
-				 */
-				Location l = player.getFakeBlockLocation();
-				if (l == null || l.getBlockX() != x || l.getBlockY() != y || l.getBlockZ() != z) {
-					player.setCancelled();
-					return;
+					String string = builder.toString();
+
+					/**
+					 * We are using a custom input gui.
+					 */
+					if (player.isGuiOpen()) {
+						/**
+						 * Match the two locations.
+						 */
+						Location l = player.getFakeBlockLocation();
+						if (l == null || l.getBlockX() != x || l.getBlockY() != y || l.getBlockZ() != z) {
+							player.setCancelled();
+							return;
+						}
+
+						e.setCancelled(true);
+						player.setConfirmed(string);
+					/**
+					 * We are changing a command block.
+					 */
+					} else {
+						Block block = e.getPlayer().getWorld().getBlockAt(x, y, z);
+						BlockState state = block.getState();
+
+						if (state instanceof CommandBlock) {
+							CommandBlock cblock = (CommandBlock) state;
+							CommandBlockEditEvent event = new CommandBlockEditEvent(cblock, cblock.getCommand(), string);
+							Bukkit.getPluginManager().callEvent(event);
+
+							if (event.isCancelled()) {
+								e.setCancelled(true);
+								return;
+							}
+
+							String command = event.getNewCommand();
+
+							ByteArrayOutputStream bos = new ByteArrayOutputStream();
+							DataOutputStream dos = new DataOutputStream(bos);
+
+							dos.writeInt(x);
+							dos.writeInt(y);
+							dos.writeInt(z);
+
+							dos.writeShort(command.length());
+							dos.writeChars(command);
+
+							packet.getByteArrays().write(0, bos.toByteArray());
+
+							dos.close();
+							bos.close();
+						}
+					}
+
+					dis.close();
+					bis.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
 				}
+			/**
+			 * This is the tag that is used by the anvil renaming.
+			 */
+			} else if (tag.equals("MC|ItemName")) {
+				InventoryView view = e.getPlayer().getOpenInventory();
 
-				/**
-				 * Reading the string.
-				 */
-				StringBuilder builder = new StringBuilder();
+				if (view != null && view.getTopInventory() instanceof AnvilInventory) {
+					String name = (data == null || data.length < 1) ? "" : new String(data);
 
-				short stringLength = dis.readShort();
-				for (int i = 0; i < stringLength; i++) {
-					builder.append(dis.readChar());
+					ItemRenameEvent event = new ItemRenameEvent(view, name);
+					Bukkit.getPluginManager().callEvent(event);
+
+					if (event.isCancelled() || event.getName() == null) {
+						e.setCancelled(true);
+						return;
+					}
+
+					packet.getByteArrays().write(0, name.getBytes());
 				}
-
-				String string = builder.toString();
-				e.setCancelled(true);
-				player.setConfirmed(string);
-			} catch (IOException ex) {
-				ex.printStackTrace();
 			}
 		/**
 		 * Close the gui once the player is doing something that can't happen when the gui open.
 		 */
-		} else if (id == Client.CHAT ||
+		} else if (player.isGuiOpen() && player.isCheckingPackets() && (id == Client.CHAT ||
 				id == Client.ARM_ANIMATION ||
 				id == Client.PLACE ||
 				id == Client.WINDOW_CLICK ||
 				id == Client.USE_ENTITY ||
 				id == Client.BLOCK_DIG ||
 				id == Client.BLOCK_ITEM_SWITCH ||
-				id == Client.SET_CREATIVE_SLOT) {
+				id == Client.SET_CREATIVE_SLOT)) {
 			player.setCancelled();
 		}
 	}

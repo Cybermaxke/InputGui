@@ -38,7 +38,9 @@ import me.cybermaxke.inputgui.api.InputPlayer;
 public class InputGuiPlayer implements InputPlayer {
 	public static final ProtocolManager PROTOCOL_MANAGER = ProtocolLibrary.getProtocolManager();
 
+	private boolean checkPackets;
 	private boolean checkMove;
+	private BukkitRunnable checkPacketsTask;
 	private BukkitRunnable checkMoveTask;
 	private Location fakeBlockLoc = null;
 
@@ -91,6 +93,7 @@ public class InputGuiPlayer implements InputPlayer {
 		this.fakeBlockLoc = playerLoc.add(direction);
 
 		this.player.sendBlockChange(this.fakeBlockLoc, Material.COMMAND, (byte) 0);
+		this.checkPackets = false;
 		this.checkMove = false;
 
 		try {
@@ -103,6 +106,16 @@ public class InputGuiPlayer implements InputPlayer {
 			e.printStackTrace();
 		}
 
+		this.checkPacketsTask = new BukkitRunnable() {
+
+			@Override
+			public void run() {
+				InputGuiPlayer.this.checkPackets = true;
+				InputGuiPlayer.this.checkPacketsTask = null;
+			}
+
+		};
+
 		this.checkMoveTask = new BukkitRunnable() {
 
 			@Override
@@ -113,6 +126,7 @@ public class InputGuiPlayer implements InputPlayer {
 
 		};
 
+		this.checkPacketsTask.runTaskLater(this.plugin, 3L);
 		this.checkMoveTask.runTaskLater(this.plugin, 17L);
 	}
 
@@ -147,6 +161,10 @@ public class InputGuiPlayer implements InputPlayer {
 
 	public boolean isCheckingMovement() {
 		return this.checkMove;
+	}
+
+	public boolean isCheckingPackets() {
+		return this.checkPackets;
 	}
 
 	public Location getFakeBlockLocation() {

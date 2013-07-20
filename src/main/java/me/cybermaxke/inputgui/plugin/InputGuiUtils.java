@@ -39,7 +39,7 @@ public class InputGuiUtils {
 
 	/**
 	 * Gets a packet to close a tile gui.
-	 * @return
+	 * @return packet
 	 */
 	public static PacketContainer getCloseGuiPacket() {
 		PacketContainer packet = new PacketContainer(Server.CLOSE_WINDOW);

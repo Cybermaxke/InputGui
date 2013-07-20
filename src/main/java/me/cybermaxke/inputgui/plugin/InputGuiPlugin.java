@@ -23,11 +23,15 @@ package me.cybermaxke.inputgui.plugin;
 import java.util.HashMap;
 import java.util.Map;
 
+import me.cybermaxke.inputgui.api.InputGui;
 import me.cybermaxke.inputgui.api.InputGuiAPI;
+import me.cybermaxke.inputgui.api.InputPlayer;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -76,5 +80,32 @@ public class InputGuiPlugin extends JavaPlugin implements InputGuiAPI, Listener 
 		if (player.isCheckingMovement()) {
 			player.setCancelled();
 		}
+	}
+
+	@EventHandler
+	public void onPlayerInteract(PlayerInteractEvent e) {
+		if (e.getAction() != Action.RIGHT_CLICK_AIR) {
+			return;
+		}
+
+		InputGuiPlayer player = this.getPlayer(e.getPlayer());
+		player.openGui(new InputGui() {
+
+			@Override
+			public String getDefaultText() {
+				return "The Cake Is A Lie";
+			}
+
+			@Override
+			public void onConfirm(InputPlayer player, String input) {
+				player.getPlayer().sendMessage(this.getDefaultText() + " -> " + input);
+			}
+
+			@Override
+			public void onCancel(InputPlayer player) {
+
+			}
+
+		});
 	}
 }
