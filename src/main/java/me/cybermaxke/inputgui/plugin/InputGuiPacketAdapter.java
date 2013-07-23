@@ -158,7 +158,8 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 						 * Match the two locations.
 						 */
 						Location l = player.getFakeBlockLocation();
-						if (l == null || l.getBlockX() != x || l.getBlockY() != y || l.getBlockZ() != z) {
+						if (l == null || l.getBlockX() != x || l.getBlockY() != y || 
+								l.getBlockZ() != z) {
 							player.setCancelled();
 							return;
 						}
@@ -174,7 +175,8 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 
 						if (state instanceof CommandBlock) {
 							CommandBlock cblock = (CommandBlock) state;
-							CommandBlockEditEvent event = new CommandBlockEditEvent(cblock, cblock.getCommand(), string);
+							CommandBlockEditEvent event = new CommandBlockEditEvent(cblock, 
+									cblock.getCommand(), string);
 							Bukkit.getPluginManager().callEvent(event);
 
 							if (event.isCancelled()) {

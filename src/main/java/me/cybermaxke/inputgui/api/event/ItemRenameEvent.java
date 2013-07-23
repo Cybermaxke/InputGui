@@ -77,6 +77,6 @@ public class ItemRenameEvent extends InventoryEvent implements Cancellable {
 	}
 
 	public static HandlerList getHandlerList() {
-        return handlers;
-    }
+		return handlers;
+	}
 }

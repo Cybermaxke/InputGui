@@ -87,6 +87,6 @@ public class CommandBlockEditEvent extends Event implements Cancellable {
 	}
 
 	public static HandlerList getHandlerList() {
-        return handlers;
-    }
+		return handlers;
+	}
 }
