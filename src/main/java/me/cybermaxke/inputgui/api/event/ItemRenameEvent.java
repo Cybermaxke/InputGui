@@ -29,12 +29,15 @@ import org.bukkit.inventory.InventoryView;
 public class ItemRenameEvent extends InventoryEvent implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
 
-	private String name;
+	private String newName;
+	private String oldName;
 	private boolean cancel;
+	private boolean reset;
 
-	public ItemRenameEvent(InventoryView view, String name) {
+	public ItemRenameEvent(InventoryView view, String oldName, String newName) {
 		super(view);
-		this.name = name;
+		this.newName = newName;
+		this.oldName = oldName;
 	}
 
 	/**
@@ -46,19 +49,43 @@ public class ItemRenameEvent extends InventoryEvent implements Cancellable {
 	}
 
 	/**
+	 * Gets the old name.
+	 * @return name
+	 */
+	public String getOldName() {
+		return this.oldName;
+	}
+
+	/**
 	 * Gets the new name.
 	 * @return name
 	 */
-	public String getName() {
-		return this.name;
+	public String getNewName() {
+		return this.newName;
 	}
 
 	/**
 	 * Sets the new name.
 	 * @param name
 	 */
-	public void setName(String name) {
-		this.name = name;
+	public void setNewName(String name) {
+		this.newName = name;
+	}
+
+	/**
+	 * Gets if the name should reset.
+	 * @return reset
+	 */
+	public boolean isResetted() {
+		return this.reset;
+	}
+
+	/**
+	 * Sets if the name should reset.
+	 * @param reset
+	 */
+	public void setResetted(boolean reset) {
+		this.reset = reset;
 	}
 
 	@Override

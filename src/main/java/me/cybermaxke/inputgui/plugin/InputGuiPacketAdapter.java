@@ -35,8 +35,12 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CommandBlock;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.Packets.Client;
@@ -116,7 +120,9 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 	@Override
 	public void onPacketReceiving(PacketEvent e) {
 		PacketContainer packet = e.getPacket();
-		InputGuiPlayer player = this.plugin.getPlayer(e.getPlayer());
+
+		final Player player = e.getPlayer();
+		final InputGuiPlayer iplayer = this.plugin.getPlayer(player);
 
 		int id = e.getPacketID();
 		if (id == Client.CUSTOM_PAYLOAD) {
@@ -153,19 +159,19 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 					/**
 					 * We are using a custom input gui.
 					 */
-					if (player.isGuiOpen()) {
+					if (iplayer.isGuiOpen()) {
 						/**
 						 * Match the two locations.
 						 */
-						Location l = player.getFakeBlockLocation();
+						Location l = iplayer.getFakeBlockLocation();
 						if (l == null || l.getBlockX() != x || l.getBlockY() != y || 
 								l.getBlockZ() != z) {
-							player.setCancelled();
+							iplayer.setCancelled();
 							return;
 						}
 
 						e.setCancelled(true);
-						player.setConfirmed(string);
+						iplayer.setConfirmed(string);
 					/**
 					 * We are changing a command block.
 					 */
@@ -175,7 +181,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 
 						if (state instanceof CommandBlock) {
 							CommandBlock cblock = (CommandBlock) state;
-							CommandBlockEditEvent event = new CommandBlockEditEvent(cblock, 
+							CommandBlockEditEvent event = new CommandBlockEditEvent(cblock,
 									cblock.getCommand(), string);
 							Bukkit.getPluginManager().callEvent(event);
 
@@ -212,26 +218,67 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 			 * This is the tag that is used by the anvil renaming.
 			 */
 			} else if (tag.equals("MC|ItemName")) {
-				InventoryView view = e.getPlayer().getOpenInventory();
+				final InventoryView view = e.getPlayer().getOpenInventory();
 
 				if (view != null && view.getTopInventory() instanceof AnvilInventory) {
-					String name = (data == null || data.length < 1) ? "" : new String(data);
+					final AnvilInventory inv = (AnvilInventory) view.getTopInventory();
 
-					ItemRenameEvent event = new ItemRenameEvent(view, name);
-					Bukkit.getPluginManager().callEvent(event);
-
-					if (event.isCancelled() || event.getName() == null) {
-						e.setCancelled(true);
+					ItemStack renamed = inv.getItem(0);
+					if (renamed == null) {
 						return;
 					}
 
-					packet.getByteArrays().write(0, event.getName().getBytes());
+					ItemMeta meta = renamed.getItemMeta();
+
+					String oldName = meta != null && meta.hasDisplayName() ? meta.getDisplayName() 
+							: null;
+					String newName = (data == null || data.length < 1) ? "" : new String(data);
+
+					ItemRenameEvent event = new ItemRenameEvent(view, oldName, newName);
+					Bukkit.getPluginManager().callEvent(event);
+
+					e.getPlayer().sendMessage("DEBUG 3");
+
+					if (event.isCancelled() || event.getNewName() == null) {
+						packet.getByteArrays().write(0, oldName.getBytes());
+
+						new BukkitRunnable() {
+
+							@Override
+							public void run() {
+								ItemStack item = inv.getItem(0);
+
+								if (item != null) {
+									PacketContainer packet = InputGuiUtils.getSetSlotPacket(view, 
+											0, item);
+									try {
+										ProtocolLibrary.getProtocolManager().sendServerPacket(
+												player, packet);
+									} catch (Exception e) {
+										e.printStackTrace();
+									}
+								}
+							}
+
+						}.runTaskLater(this.plugin, 2L);
+
+						return;
+					}
+
+					if (event.isResetted()) {
+						newName = "";
+					} else {
+						newName = event.getNewName();
+					}
+
+					e.getPlayer().sendMessage("DEBUG 1");
+					packet.getByteArrays().write(0, newName.getBytes());
 				}
 			}
 		/**
 		 * Close the gui once the player is doing something that can't happen when the gui open.
 		 */
-		} else if (player.isGuiOpen() && player.isCheckingPackets() && (id == Client.CHAT ||
+		} else if (iplayer.isGuiOpen() && iplayer.isCheckingPackets() && (id == Client.CHAT ||
 				id == Client.ARM_ANIMATION ||
 				id == Client.PLACE ||
 				id == Client.WINDOW_CLICK ||
@@ -239,7 +286,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 				id == Client.BLOCK_DIG ||
 				id == Client.BLOCK_ITEM_SWITCH ||
 				id == Client.SET_CREATIVE_SLOT)) {
-			player.setCancelled();
+			iplayer.setCancelled();
 		}
 	}
 }

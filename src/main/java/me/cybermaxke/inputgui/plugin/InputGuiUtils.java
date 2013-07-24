@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.events.PacketContainer;
@@ -86,5 +88,27 @@ public class InputGuiUtils {
 		packet.getIntegers().write(3, location.getBlockZ());
 
 		return packet;
+	}
+
+	public static PacketContainer getSetSlotPacket(InventoryView view, int slot, ItemStack item) {
+		PacketContainer packet = new PacketContainer(Server.SET_SLOT);
+
+		packet.getIntegers().write(0, getWindowId(view));
+		packet.getIntegers().write(1, slot);
+		packet.getItemModifier().write(0, item);
+
+		return packet;
+	}
+
+	public static int getWindowId(InventoryView view) {
+		try {
+			Object container = view.getClass().getMethod("getHandle", new Class[] {})
+					.invoke(view, new Object[] {});
+			return container.getClass().getField("windowId").getInt(container);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return 0;
 	}
 }
