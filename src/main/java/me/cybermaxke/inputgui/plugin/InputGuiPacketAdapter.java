@@ -121,8 +121,8 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 	public void onPacketReceiving(PacketEvent e) {
 		PacketContainer packet = e.getPacket();
 
-		final Player player = e.getPlayer();
-		final InputGuiPlayer iplayer = this.plugin.getPlayer(player);
+		Player player = e.getPlayer();
+		InputGuiPlayer iplayer = this.plugin.getPlayer(player);
 
 		int id = e.getPacketID();
 		if (id == Client.CUSTOM_PAYLOAD) {
@@ -218,10 +218,10 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 			 * This is the tag that is used by the anvil renaming.
 			 */
 			} else if (tag.equals("MC|ItemName")) {
-				final InventoryView view = e.getPlayer().getOpenInventory();
+				InventoryView view = player.getOpenInventory();
 
 				if (view != null && view.getTopInventory() instanceof AnvilInventory) {
-					final AnvilInventory inv = (AnvilInventory) view.getTopInventory();
+					AnvilInventory inv = (AnvilInventory) view.getTopInventory();
 
 					ItemStack renamed = inv.getItem(0);
 					if (renamed == null) {
@@ -229,7 +229,6 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 					}
 
 					ItemMeta meta = renamed.getItemMeta();
-
 					String oldName = meta != null && meta.hasDisplayName() ? meta.getDisplayName() 
 							: null;
 					String newName = (data == null || data.length < 1) ? "" : new String(data);
@@ -237,31 +236,9 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 					ItemRenameEvent event = new ItemRenameEvent(view, oldName, newName);
 					Bukkit.getPluginManager().callEvent(event);
 
-					e.getPlayer().sendMessage("DEBUG 3");
-
 					if (event.isCancelled() || event.getNewName() == null) {
-						packet.getByteArrays().write(0, oldName.getBytes());
-
-						new BukkitRunnable() {
-
-							@Override
-							public void run() {
-								ItemStack item = inv.getItem(0);
-
-								if (item != null) {
-									PacketContainer packet = InputGuiUtils.getSetSlotPacket(view, 
-											0, item);
-									try {
-										ProtocolLibrary.getProtocolManager().sendServerPacket(
-												player, packet);
-									} catch (Exception e) {
-										e.printStackTrace();
-									}
-								}
-							}
-
-						}.runTaskLater(this.plugin, 2L);
-
+						new UpdateAnvilSlots(player, view);
+						e.setCancelled(true);
 						return;
 					}
 
@@ -271,8 +248,8 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 						newName = event.getNewName();
 					}
 
-					e.getPlayer().sendMessage("DEBUG 1");
 					packet.getByteArrays().write(0, newName.getBytes());
+					new UpdateAnvilSlots(player, view);
 				}
 			}
 		/**
@@ -287,6 +264,56 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 				id == Client.BLOCK_ITEM_SWITCH ||
 				id == Client.SET_CREATIVE_SLOT)) {
 			iplayer.setCancelled();
+		}
+
+		/**
+		 * Update the slots after someone clicked on it, this fixes glitches.
+		 */
+		if (id == Client.WINDOW_CLICK) {
+			InventoryView view = player.getOpenInventory();
+
+			if (view != null && view.getTopInventory() instanceof AnvilInventory) {
+				int slot = packet.getIntegers().read(1);
+
+				if (slot == 2) {
+					new UpdateAnvilSlots(player, view);
+				}
+			}
+		}
+	}
+
+	/**
+	 * We update all the slots of the anvil inventory.
+	 */
+	private class UpdateAnvilSlots extends BukkitRunnable {
+		private InventoryView view;
+		private Player player;
+
+		public UpdateAnvilSlots(Player player, InventoryView view) {
+			this.runTaskLater(InputGuiPacketAdapter.this.plugin, 1L);
+			this.view = view;
+			this.player = player;
+		}
+
+		@Override
+		public void run() {
+			AnvilInventory inv = (AnvilInventory) this.view.getTopInventory();
+
+			ItemStack item1 = inv.getItem(0);
+			ItemStack item2 = inv.getItem(1);
+			ItemStack item3 = InputGuiUtils.getResult(inv);
+
+			PacketContainer packet1 = InputGuiUtils.getSetSlotPacket(this.view, 0, item1);
+			PacketContainer packet2 = InputGuiUtils.getSetSlotPacket(this.view, 1, item2);
+			PacketContainer packet3 = InputGuiUtils.getSetSlotPacket(this.view, 2, item3);
+
+			try {
+				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player, packet1);
+				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player, packet2);
+				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player, packet3);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

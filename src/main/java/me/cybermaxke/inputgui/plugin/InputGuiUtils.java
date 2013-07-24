@@ -24,11 +24,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.utility.MinecraftReflection;
 import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 
@@ -90,6 +92,13 @@ public class InputGuiUtils {
 		return packet;
 	}
 
+	/**
+	 * Gets a set slot packet for the view, slot and item.
+	 * @param view
+	 * @param slot
+	 * @param item
+	 * @return packet
+	 */
 	public static PacketContainer getSetSlotPacket(InventoryView view, int slot, ItemStack item) {
 		PacketContainer packet = new PacketContainer(Server.SET_SLOT);
 
@@ -100,6 +109,11 @@ public class InputGuiUtils {
 		return packet;
 	}
 
+	/**
+	 * Gets the window id for the view. This is not supported by the bukkit api.
+	 * @param view
+	 * @return id
+	 */
 	public static int getWindowId(InventoryView view) {
 		try {
 			Object container = view.getClass().getMethod("getHandle", new Class[] {})
@@ -110,5 +124,23 @@ public class InputGuiUtils {
 		}
 
 		return 0;
+	}
+
+	/**
+	 * Gets the result item from the anvil inventory. This is not supported by the bukkit api.
+	 * @param inventory
+	 * @return item
+	 */
+	public static ItemStack getResult(AnvilInventory inventory) {
+		try {
+			Object handle = inventory.getClass().getMethod("getResultInventory", new Class[] {})
+					.invoke(inventory, new Object[] {});
+			Object item = handle.getClass().getMethod("getItem", int.class).invoke(handle, 0);
+			return item == null ? null : MinecraftReflection.getBukkitItemStack(item);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 }
