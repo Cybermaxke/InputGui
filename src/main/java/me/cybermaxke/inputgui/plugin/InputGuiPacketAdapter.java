@@ -225,7 +225,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 						return;
 					}
 
-					packet.getByteArrays().write(0, name.getBytes());
+					packet.getByteArrays().write(0, event.getName().getBytes());
 				}
 			}
 		/**
