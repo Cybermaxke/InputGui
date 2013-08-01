@@ -248,8 +248,9 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 						newName = event.getNewName();
 					}
 
-					packet.getByteArrays().write(0, newName.getBytes());
+					InputGuiUtils.setItemName(view, newName);
 					new UpdateAnvilSlots(player, view);
+					e.setCancelled(true);
 				}
 			}
 		/**

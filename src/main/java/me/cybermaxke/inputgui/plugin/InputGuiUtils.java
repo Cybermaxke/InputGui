@@ -20,6 +20,7 @@
  */
 package me.cybermaxke.inputgui.plugin;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,12 +31,14 @@ import org.bukkit.inventory.ItemStack;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.injector.BukkitUnwrapper;
 import com.comphenix.protocol.utility.MinecraftReflection;
 import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 
 public class InputGuiUtils {
-	public static final int PACKET_TILE_EDITOR_OPEN = 0x85;
+	private static final int PACKET_TILE_EDITOR_OPEN = 0x85;
+	private static String ALLOWED_CHARS;
 
 	private InputGuiUtils() {
 
@@ -116,8 +119,7 @@ public class InputGuiUtils {
 	 */
 	public static int getWindowId(InventoryView view) {
 		try {
-			Object container = view.getClass().getMethod("getHandle", new Class[] {})
-					.invoke(view, new Object[] {});
+			Object container = new BukkitUnwrapper().unwrapItem(view);
 			return container.getClass().getField("windowId").getInt(container);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -142,5 +144,63 @@ public class InputGuiUtils {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Sets the item name in the inventory view.
+	 * @param view
+	 * @param name
+	 */
+	public static void setItemName(InventoryView view, String name) {
+		if (!(view.getTopInventory() instanceof AnvilInventory)) {
+			return;
+		}
+
+		Object container = new BukkitUnwrapper().unwrapItem(view);
+
+		try {
+			container.getClass()
+					.getMethod("a", String.class)
+					.invoke(container, getResult(name));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Gets a string which chars are filtered.
+	 * @param string
+	 * @return result
+	 */
+	public static String getResult(String string) {
+		StringBuilder builder = new StringBuilder();
+
+		for (char character : string.toCharArray()) {
+			if (isAllowedChatCharacter(character)) {
+				builder.append(character);
+			}
+		}
+
+		return builder.toString();
+	}
+
+	/**
+	 * Gets if the character is valid.
+	 * @param character
+	 * @return valid
+	 */
+	public static boolean isAllowedChatCharacter(char character) {
+		return ALLOWED_CHARS.indexOf(character) >= 0 || character > ' ';
+	}
+
+	static {
+		try {
+			Method method = MinecraftReflection.getMinecraftClass("SharedConstants")
+									.getDeclaredMethod("a", new Class[] {});
+			method.setAccessible(true);
+			ALLOWED_CHARS = (String) method.invoke(null, new Object[] {});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
