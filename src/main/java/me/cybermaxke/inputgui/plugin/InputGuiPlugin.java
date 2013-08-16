@@ -39,7 +39,7 @@ public class InputGuiPlugin extends JavaPlugin implements InputGuiAPI, Listener 
 	@Override
 	public void onEnable() {
 		this.getServer().getPluginManager().registerEvents(this, this);
-		new InputGuiPacketAdapter(this);
+		new InputGuiPacketListener(this);
 	}
 
 	@Override

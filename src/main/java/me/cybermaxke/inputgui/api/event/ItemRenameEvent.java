@@ -20,6 +20,7 @@
  */
 package me.cybermaxke.inputgui.api.event;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.inventory.InventoryEvent;
@@ -29,15 +30,25 @@ import org.bukkit.inventory.InventoryView;
 public class ItemRenameEvent extends InventoryEvent implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
 
+	private Player player;
 	private String newName;
 	private String oldName;
 	private boolean cancel;
 	private boolean reset;
 
-	public ItemRenameEvent(InventoryView view, String oldName, String newName) {
+	public ItemRenameEvent(Player player, InventoryView view, String oldName, String newName) {
 		super(view);
 		this.newName = newName;
 		this.oldName = oldName;
+		this.player = player;
+	}
+
+	/**
+	 * Gets the player who is renaming the item.
+	 * @return player
+	 */
+	public Player getPlayer() {
+		return this.player;
 	}
 
 	/**

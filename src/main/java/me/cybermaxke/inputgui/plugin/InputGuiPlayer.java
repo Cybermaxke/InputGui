@@ -54,6 +54,21 @@ public class InputGuiPlayer implements InputPlayer {
 	}
 
 	@Override
+	public void openTileEditor(Block block) {
+		if (this.isGuiOpen()) {
+			this.closeGui();
+		}
+
+		try {
+			PacketContainer packet = InputGuiUtils.getOpenGuiPacket(block.getLocation());
+
+			PROTOCOL_MANAGER.sendServerPacket(this.player, packet);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
 	public Player getPlayer() {
 		return this.player;
 	}

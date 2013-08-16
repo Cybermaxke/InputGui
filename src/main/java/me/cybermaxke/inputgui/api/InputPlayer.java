@@ -20,6 +20,7 @@
  */
 package me.cybermaxke.inputgui.api;
 
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 public interface InputPlayer {
@@ -53,4 +54,10 @@ public interface InputPlayer {
 	 * @param gui
 	 */
 	public void openGui(InputGui gui);
+
+	/**
+	 * Open a command block gui or sign edit gui.
+	 * @param block
+	 */
+	public void openTileEditor(Block block);
 }

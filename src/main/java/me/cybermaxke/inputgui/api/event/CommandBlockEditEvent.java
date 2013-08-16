@@ -21,6 +21,7 @@
 package me.cybermaxke.inputgui.api.event;
 
 import org.bukkit.block.CommandBlock;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -28,15 +29,26 @@ import org.bukkit.event.HandlerList;
 public class CommandBlockEditEvent extends Event implements Cancellable {
 	private static final HandlerList handlers = new HandlerList();
 
+	private Player player;
 	private CommandBlock block;
 	private String newCommand;
 	private String oldCommand;
 	private boolean cancel;
 
-	public CommandBlockEditEvent(CommandBlock block, String oldCommand, String newCommand) {
+	public CommandBlockEditEvent(Player player, CommandBlock block, String oldCommand,
+			String newCommand) {
+		this.player = player;
 		this.block = block;
 		this.oldCommand = oldCommand;
 		this.newCommand = newCommand;
+	}
+
+	/**
+	 * Gets the player who is editing the command block.
+	 * @return player
+	 */
+	public Player getPlayer() {
+		return this.player;
 	}
 
 	/**

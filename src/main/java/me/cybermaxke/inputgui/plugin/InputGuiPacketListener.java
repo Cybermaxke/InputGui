@@ -40,33 +40,38 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.Packets.Client;
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.ConnectionSide;
 import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
+import com.comphenix.protocol.events.ListeningWhitelist;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.events.PacketListener;
 
-public class InputGuiPacketAdapter extends PacketAdapter {
+public class InputGuiPacketListener implements PacketListener {
 	private InputGuiPlugin plugin;
 
-	public InputGuiPacketAdapter(InputGuiPlugin plugin) {
-		super(plugin, ConnectionSide.BOTH, ListenerPriority.NORMAL,
-				/**
-				 * Packets from the server.
-				 */
+	public InputGuiPacketListener(InputGuiPlugin plugin) {
+		this.plugin = plugin;
+		ProtocolLibrary.getProtocolManager().addPacketListener(this);
+	}
+
+	@Override
+	public ListeningWhitelist getSendingWhitelist() {
+		return new ListeningWhitelist(ListenerPriority.NORMAL,
 				Server.BLOCK_CHANGE,
 				Server.CLOSE_WINDOW,
 				Server.OPEN_WINDOW,
-				Server.RESPAWN,
+				Server.RESPAWN);
+	}
 
-				/**
-				 * Packets from the client.
-				 */
+	@Override
+	public ListeningWhitelist getReceivingWhitelist() {
+		return new ListeningWhitelist(ListenerPriority.NORMAL,
 				Client.CUSTOM_PAYLOAD,
 				Client.CHAT,
 				Client.ARM_ANIMATION,
@@ -76,8 +81,11 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 				Client.BLOCK_DIG,
 				Client.BLOCK_ITEM_SWITCH,
 				Client.SET_CREATIVE_SLOT);
-		ProtocolLibrary.getProtocolManager().addPacketListener(this);
-		this.plugin = plugin;
+	}
+
+	@Override
+	public Plugin getPlugin() {
+		return this.plugin;
 	}
 
 	@Override
@@ -181,7 +189,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 
 						if (state instanceof CommandBlock) {
 							CommandBlock cblock = (CommandBlock) state;
-							CommandBlockEditEvent event = new CommandBlockEditEvent(cblock,
+							CommandBlockEditEvent event = new CommandBlockEditEvent(player, cblock,
 									cblock.getCommand(), string);
 							Bukkit.getPluginManager().callEvent(event);
 
@@ -233,7 +241,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 							: null;
 					String newName = (data == null || data.length < 1) ? "" : new String(data);
 
-					ItemRenameEvent event = new ItemRenameEvent(view, oldName, newName);
+					ItemRenameEvent event = new ItemRenameEvent(player, view, oldName, newName);
 					Bukkit.getPluginManager().callEvent(event);
 
 					if (event.isCancelled() || event.getNewName() == null) {
@@ -291,7 +299,7 @@ public class InputGuiPacketAdapter extends PacketAdapter {
 		private Player player;
 
 		public UpdateAnvilSlots(Player player, InventoryView view) {
-			this.runTaskLater(InputGuiPacketAdapter.this.plugin, 1L);
+			this.runTaskLater(InputGuiPacketListener.this.plugin, 1L);
 			this.view = view;
 			this.player = player;
 		}
