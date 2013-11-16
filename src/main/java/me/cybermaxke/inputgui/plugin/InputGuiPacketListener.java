@@ -26,6 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import me.cybermaxke.inputgui.api.InputGuiSign;
 import me.cybermaxke.inputgui.api.event.CommandBlockEditEvent;
 import me.cybermaxke.inputgui.api.event.ItemRenameEvent;
 
@@ -80,7 +81,8 @@ public class InputGuiPacketListener implements PacketListener {
 				Client.USE_ENTITY,
 				Client.BLOCK_DIG,
 				Client.BLOCK_ITEM_SWITCH,
-				Client.SET_CREATIVE_SLOT);
+				Client.SET_CREATIVE_SLOT,
+				Client.UPDATE_SIGN);
 	}
 
 	@Override
@@ -167,7 +169,8 @@ public class InputGuiPacketListener implements PacketListener {
 					/**
 					 * We are using a custom input gui.
 					 */
-					if (iplayer.isGuiOpen()) {
+					if (iplayer.isGuiOpen() &&
+							!(iplayer.getCurrentGui() instanceof InputGuiSign)) {
 						/**
 						 * Match the two locations.
 						 */
@@ -260,6 +263,39 @@ public class InputGuiPacketListener implements PacketListener {
 					new UpdateAnvilSlots(player, view);
 					e.setCancelled(true);
 				}
+			}
+		} else if (id == Client.UPDATE_SIGN) {
+			int x = packet.getIntegers().read(0);
+			int y = packet.getIntegers().read(1);
+			int z = packet.getIntegers().read(2);
+
+			String[] lines = packet.getStringArrays().read(0);
+
+			/**
+			 * We are using a custom input gui.
+			 */
+			if (iplayer.isGuiOpen() && iplayer.getCurrentGui() instanceof InputGuiSign) {
+				/**
+				 * Match the two locations.
+				 */
+				Location l = iplayer.getFakeBlockLocation();
+				if (l == null || l.getBlockX() != x || l.getBlockY() != y || 
+						l.getBlockZ() != z) {
+					iplayer.setCancelled();
+					return;
+				}
+
+				StringBuilder text = new StringBuilder();
+				for (int i = 0; i < lines.length; i++) {
+					text.append(lines[i]);
+
+					if (lines.length != i - 1) {
+						text.append("\n");
+					}
+				}
+
+				e.setCancelled(true);
+				iplayer.setConfirmed(text.toString());
 			}
 		/**
 		 * Close the gui once the player is doing something that can't happen when the gui open.

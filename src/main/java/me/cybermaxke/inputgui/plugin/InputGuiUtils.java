@@ -29,6 +29,7 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
+import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.injector.BukkitUnwrapper;
@@ -37,11 +38,30 @@ import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 
 public class InputGuiUtils {
-	private static final int PACKET_TILE_EDITOR_OPEN = 0x85;
 	private static String ALLOWED_CHARS;
 
 	private InputGuiUtils() {
 
+	}
+
+	public static PacketContainer getSignPacket(Location location, String[] text) {
+		PacketContainer packet = new PacketContainer(Server.UPDATE_SIGN);
+
+		String[] text1 = new String[4];
+		for (int i = 0; i < text1.length; i++) {
+			if (i < text.length) {
+				text1[i] = text[i];
+			} else {
+				text1[i] = "";
+			}
+		}
+
+		packet.getIntegers().write(0, location.getBlockX());
+		packet.getIntegers().write(1, location.getBlockY());
+		packet.getIntegers().write(2, location.getBlockZ());
+		packet.getStringArrays().write(0, text);
+
+		return packet;
 	}
 
 	/**
@@ -85,14 +105,32 @@ public class InputGuiUtils {
 	 * @return packet
 	 */
 	public static PacketContainer getOpenGuiPacket(Location location) {
-		PacketContainer packet = new PacketContainer(PACKET_TILE_EDITOR_OPEN);
+		/**
+		 * Packet was added in 1.6.2
+		 */
+		if (ProtocolLibrary.getProtocolManager().getMinecraftVersion()
+				.getVersion().startsWith("1.6.")) {
+			PacketContainer packet = new PacketContainer(0x85);
 
-		packet.getIntegers().write(0, 0);
-		packet.getIntegers().write(1, location.getBlockX());
-		packet.getIntegers().write(2, location.getBlockY());
-		packet.getIntegers().write(3, location.getBlockZ());
+			packet.getIntegers().write(0, 0);
+			packet.getIntegers().write(1, location.getBlockX());
+			packet.getIntegers().write(2, location.getBlockY());
+			packet.getIntegers().write(3, location.getBlockZ());
 
-		return packet;
+			return packet;
+		/**
+		 * In 1.7.2 and higher is the tile entity id removed.
+		 * TODO: Check changes in ProtocolLib
+		 */
+		} else {
+			PacketContainer packet = new PacketContainer(0x36);
+
+			packet.getIntegers().write(0, location.getBlockX());
+			packet.getIntegers().write(1, location.getBlockY());
+			packet.getIntegers().write(2, location.getBlockZ());
+
+			return packet;
+		}
 	}
 
 	/**
@@ -176,7 +214,7 @@ public class InputGuiUtils {
 		StringBuilder builder = new StringBuilder();
 
 		for (char character : string.toCharArray()) {
-			if (isAllowedChatCharacter(character)) {
+			if (InputGuiUtils.isAllowedChatCharacter(character)) {
 				builder.append(character);
 			}
 		}
@@ -190,15 +228,17 @@ public class InputGuiUtils {
 	 * @return valid
 	 */
 	public static boolean isAllowedChatCharacter(char character) {
-		return ALLOWED_CHARS.indexOf(character) >= 0 || character > ' ';
+		return InputGuiUtils.ALLOWED_CHARS.indexOf(character) >= 0 || character > ' ';
 	}
 
 	static {
 		try {
-			Method method = MinecraftReflection.getMinecraftClass("SharedConstants")
-									.getDeclaredMethod("a", new Class[] {});
+			Method method = MinecraftReflection
+					.getMinecraftClass("SharedConstants")
+					.getDeclaredMethod("a", new Class[] {});
 			method.setAccessible(true);
-			ALLOWED_CHARS = (String) method.invoke(null, new Object[] {});
+
+			InputGuiUtils.ALLOWED_CHARS = (String) method.invoke(null, new Object[] {});
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

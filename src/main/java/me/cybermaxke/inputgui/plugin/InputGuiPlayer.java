@@ -29,17 +29,16 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
 
 import me.cybermaxke.inputgui.api.InputGui;
+import me.cybermaxke.inputgui.api.InputGuiSign;
 import me.cybermaxke.inputgui.api.InputPlayer;
 
 public class InputGuiPlayer implements InputPlayer {
-	public static final ProtocolManager PROTOCOL_MANAGER = ProtocolLibrary.getProtocolManager();
-
 	private boolean checkPackets;
 	private boolean checkMove;
+
 	private BukkitRunnable checkPacketsTask;
 	private BukkitRunnable checkMoveTask;
 	private Location fakeBlockLoc = null;
@@ -55,14 +54,11 @@ public class InputGuiPlayer implements InputPlayer {
 
 	@Override
 	public void openTileEditor(Block block) {
-		if (this.isGuiOpen()) {
-			this.closeGui();
-		}
+		this.setCancelled();
 
 		try {
 			PacketContainer packet = InputGuiUtils.getOpenGuiPacket(block.getLocation());
-
-			PROTOCOL_MANAGER.sendServerPacket(this.player, packet);
+			ProtocolLibrary.getProtocolManager().sendServerPacket(this.player, packet);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -90,7 +86,8 @@ public class InputGuiPlayer implements InputPlayer {
 		}
 
 		try {
-			PROTOCOL_MANAGER.sendServerPacket(this.player, InputGuiUtils.getCloseGuiPacket());
+			ProtocolLibrary.getProtocolManager().sendServerPacket(
+					this.player, InputGuiUtils.getCloseGuiPacket());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -100,6 +97,11 @@ public class InputGuiPlayer implements InputPlayer {
 
 	@Override
 	public void openGui(InputGui gui) {
+		this.openGui(gui, 17, 3);
+	}
+
+	@Override
+	public void openGui(InputGui gui, int moveCheckTicks, int packetCheckTicks) {
 		this.setCancelled();
 		this.gui = gui;
 
@@ -107,16 +109,41 @@ public class InputGuiPlayer implements InputPlayer {
 		Vector direction = playerLoc.getDirection().normalize().multiply(-5);
 		this.fakeBlockLoc = playerLoc.add(direction);
 
-		this.player.sendBlockChange(this.fakeBlockLoc, Material.COMMAND, (byte) 0);
 		this.checkPackets = false;
 		this.checkMove = false;
 
-		try {
-			PacketContainer packet1 = InputGuiUtils.getTileDataPacket(this.fakeBlockLoc, gui.getDefaultText());
-			PacketContainer packet2 = InputGuiUtils.getOpenGuiPacket(this.fakeBlockLoc);
+		if (gui instanceof InputGuiSign) {
+			String text = gui.getDefaultText();
+			String[] lines = { "", "", "", "" };
 
-			PROTOCOL_MANAGER.sendServerPacket(this.player, packet1);
-			PROTOCOL_MANAGER.sendServerPacket(this.player, packet2);
+			if (text != null) {
+				String[] lines1 = text.split("\n");
+
+				for (int i = 0; i < lines1.length; i++) {
+					lines[i] = lines1[i];
+				}
+			}
+
+			try {
+				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player,
+						InputGuiUtils.getSignPacket(this.fakeBlockLoc, lines));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			this.player.sendBlockChange(this.fakeBlockLoc, Material.COMMAND, (byte) 0);
+
+			try {
+				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player,
+						InputGuiUtils.getTileDataPacket(this.fakeBlockLoc, gui.getDefaultText()));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		try {
+			ProtocolLibrary.getProtocolManager().sendServerPacket(this.player,
+					InputGuiUtils.getOpenGuiPacket(this.fakeBlockLoc));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -141,8 +168,8 @@ public class InputGuiPlayer implements InputPlayer {
 
 		};
 
-		this.checkPacketsTask.runTaskLater(this.plugin, 3L);
-		this.checkMoveTask.runTaskLater(this.plugin, 17L);
+		this.checkPacketsTask.runTaskLater(this.plugin, packetCheckTicks);
+		this.checkMoveTask.runTaskLater(this.plugin, moveCheckTicks);
 	}
 
 	public void setCancelled() {

@@ -50,10 +50,19 @@ public interface InputPlayer {
 	public boolean closeGui();
 
 	/**
-	 * Opens the gui.
+	 * Opens the gui, with default check settings.
 	 * @param gui
 	 */
 	public void openGui(InputGui gui);
+
+	/**
+	 * Opens the gui, with specific settings to check before
+	 * the packets and movement should be checked. (Used to call the gui close.)
+	 * @param gui
+	 * @param moveCheckTicks
+	 * @param packetCheckTicks
+	 */
+	public void openGui(InputGui gui, int moveCheckTicks, int packetCheckTicks);
 
 	/**
 	 * Open a command block gui or sign edit gui.
