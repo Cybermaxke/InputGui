@@ -285,17 +285,8 @@ public class InputGuiPacketListener implements PacketListener {
 					return;
 				}
 
-				StringBuilder text = new StringBuilder();
-				for (int i = 0; i < lines.length; i++) {
-					text.append(lines[i]);
-
-					if (lines.length != i - 1) {
-						text.append("\n");
-					}
-				}
-
 				e.setCancelled(true);
-				iplayer.setConfirmed(text.toString());
+				iplayer.setConfirmed(lines);
 			}
 		/**
 		 * Close the gui once the player is doing something that can't happen when the gui open.

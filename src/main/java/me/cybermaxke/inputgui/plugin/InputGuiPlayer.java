@@ -32,6 +32,7 @@ import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.events.PacketContainer;
 
 import me.cybermaxke.inputgui.api.InputGui;
+import me.cybermaxke.inputgui.api.InputGuiBase;
 import me.cybermaxke.inputgui.api.InputGuiSign;
 import me.cybermaxke.inputgui.api.InputPlayer;
 
@@ -45,7 +46,7 @@ public class InputGuiPlayer implements InputPlayer {
 
 	private Plugin plugin;
 	private Player player;
-	private InputGui gui;
+	private InputGuiBase<?> gui;
 
 	public InputGuiPlayer(Plugin plugin, Player player) {
 		this.plugin = plugin;
@@ -75,7 +76,7 @@ public class InputGuiPlayer implements InputPlayer {
 	}
 
 	@Override
-	public InputGui getCurrentGui() {
+	public InputGuiBase<?> getCurrentGui() {
 		return this.gui;
 	}
 
@@ -96,12 +97,12 @@ public class InputGuiPlayer implements InputPlayer {
 	}
 
 	@Override
-	public void openGui(InputGui gui) {
+	public void openGui(InputGuiBase<?> gui) {
 		this.openGui(gui, 17, 3);
 	}
 
 	@Override
-	public void openGui(InputGui gui, int moveCheckTicks, int packetCheckTicks) {
+	public void openGui(InputGuiBase<?> gui, int moveCheckTicks, int packetCheckTicks) {
 		this.setCancelled();
 		this.gui = gui;
 
@@ -113,16 +114,7 @@ public class InputGuiPlayer implements InputPlayer {
 		this.checkMove = false;
 
 		if (gui instanceof InputGuiSign) {
-			String text = gui.getDefaultText();
-			String[] lines = { "", "", "", "" };
-
-			if (text != null) {
-				String[] lines1 = text.split("\n");
-
-				for (int i = 0; i < lines1.length; i++) {
-					lines[i] = lines1[i];
-				}
-			}
+			String[] lines = (String[]) gui.getDefaultText();
 
 			try {
 				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player,
@@ -130,15 +122,19 @@ public class InputGuiPlayer implements InputPlayer {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		} else {
+		} else if (gui instanceof InputGui) {
 			this.player.sendBlockChange(this.fakeBlockLoc, Material.COMMAND, (byte) 0);
 
+			String text = (String) gui.getDefaultText();
 			try {
 				ProtocolLibrary.getProtocolManager().sendServerPacket(this.player,
-						InputGuiUtils.getTileDataPacket(this.fakeBlockLoc, gui.getDefaultText()));
+						InputGuiUtils.getTileDataPacket(this.fakeBlockLoc, text));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+		} else {
+			throw new IllegalArgumentException(
+					"Unsupported gui: '" + gui.getClass().getSimpleName() + "'!");
 		}
 
 		try {
@@ -189,16 +185,19 @@ public class InputGuiPlayer implements InputPlayer {
 		}
 	}
 
-	public void setConfirmed(String input) {
+	public void setConfirmed(Object input) {
 		if (this.checkMoveTask != null) {
 			this.checkMoveTask.cancel();
 			this.checkMoveTask = null;
 		}
 
-		if (this.gui != null) {
-			this.gui.onConfirm(this, input);
-			this.gui = null;
+		if (this.gui instanceof InputGuiSign) {
+			((InputGuiSign) this.gui).onConfirm(this, (String[]) input);
+		} else if (this.gui instanceof InputGui) {
+			((InputGui) this.gui).onConfirm(this, (String) input);
 		}
+
+		this.gui = null;
 	}
 
 	public boolean isCheckingMovement() {

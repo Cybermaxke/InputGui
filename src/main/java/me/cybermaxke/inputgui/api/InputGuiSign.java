@@ -22,8 +22,8 @@ package me.cybermaxke.inputgui.api;
 
 /**
  * The same methods like with the cmd block gui,
- * but the lines are seperated by '\n' (new line).
+ * but now it are text lines.
  */
-public interface InputGuiSign extends InputGui {
+public interface InputGuiSign extends InputGuiBase<String[]> {
 
 }

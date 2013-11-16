@@ -41,7 +41,7 @@ public interface InputPlayer {
 	 * Gets the gui that is currently open.
 	 * @return gui
 	 */
-	public InputGui getCurrentGui();
+	public InputGuiBase<?> getCurrentGui();
 
 	/**
 	 * Closes the current gui and gets there was one open.
@@ -53,7 +53,7 @@ public interface InputPlayer {
 	 * Opens the gui, with default check settings.
 	 * @param gui
 	 */
-	public void openGui(InputGui gui);
+	public void openGui(InputGuiBase<?> gui);
 
 	/**
 	 * Opens the gui, with specific settings to check before
@@ -62,7 +62,7 @@ public interface InputPlayer {
 	 * @param moveCheckTicks
 	 * @param packetCheckTicks
 	 */
-	public void openGui(InputGui gui, int moveCheckTicks, int packetCheckTicks);
+	public void openGui(InputGuiBase<?> gui, int moveCheckTicks, int packetCheckTicks);
 
 	/**
 	 * Open a command block gui or sign edit gui.
