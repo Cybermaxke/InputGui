@@ -48,10 +48,12 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.PacketType.Play.Server;
 import com.comphenix.protocol.PacketType.Play.Client;
 import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.events.ListenerOptions;
 import com.comphenix.protocol.events.ListeningWhitelist;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.events.PacketListener;
+import com.comphenix.protocol.injector.GamePhase;
 import com.google.common.base.Charsets;
 
 public class InputGuiPacketListener implements PacketListener {
@@ -64,27 +66,33 @@ public class InputGuiPacketListener implements PacketListener {
 
 	@Override
 	public ListeningWhitelist getSendingWhitelist() {
-		return ListeningWhitelist.newBuilder().normal().types(
-				Server.BLOCK_CHANGE,
-				Server.BLOCK_CHANGE,
-				Server.CLOSE_WINDOW,
-				Server.OPEN_WINDOW,
-				Server.RESPAWN).build();
+		return ListeningWhitelist.newBuilder().normal().gamePhase(GamePhase.PLAYING)
+				.options(new ListenerOptions[] {})
+				.types(
+					Server.BLOCK_CHANGE,
+					Server.BLOCK_CHANGE,
+					Server.CLOSE_WINDOW,
+					Server.OPEN_WINDOW,
+					Server.RESPAWN)
+				.build();
 	}
 
 	@Override
 	public ListeningWhitelist getReceivingWhitelist() {
-		return ListeningWhitelist.newBuilder().normal().types(
-				Client.CUSTOM_PAYLOAD,
-				Client.CHAT,
-				Client.ARM_ANIMATION,
-				Client.BLOCK_PLACE,
-				Client.WINDOW_CLICK,
-				Client.USE_ENTITY,
-				Client.BLOCK_DIG,
-				Client.CLOSE_WINDOW,
-				Client.SET_CREATIVE_SLOT,
-				Client.UPDATE_SIGN).build();
+		return ListeningWhitelist.newBuilder().normal().gamePhase(GamePhase.PLAYING)
+				.options(new ListenerOptions[] {})
+				.types(
+					Client.CUSTOM_PAYLOAD,
+					Client.CHAT,
+					Client.ARM_ANIMATION,
+					Client.BLOCK_PLACE,
+					Client.WINDOW_CLICK,
+					Client.USE_ENTITY,
+					Client.BLOCK_DIG,
+					Client.CLOSE_WINDOW,
+					Client.SET_CREATIVE_SLOT,
+					Client.UPDATE_SIGN)
+				.build();
 	}
 
 	@Override
