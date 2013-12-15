@@ -54,6 +54,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.events.PacketListener;
 import com.comphenix.protocol.injector.GamePhase;
+
 import com.google.common.base.Charsets;
 
 public class InputGuiPacketListener implements PacketListener {

@@ -20,7 +20,6 @@
  */
 package me.cybermaxke.inputgui.plugin;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +37,6 @@ import com.comphenix.protocol.wrappers.nbt.NbtBase;
 import com.comphenix.protocol.wrappers.nbt.NbtFactory;
 
 public class InputGuiUtils {
-	private static String ALLOWED_CHARS;
 
 	private InputGuiUtils() {
 
@@ -228,19 +226,6 @@ public class InputGuiUtils {
 	 * @return valid
 	 */
 	public static boolean isAllowedChatCharacter(char character) {
-		return InputGuiUtils.ALLOWED_CHARS.indexOf(character) >= 0 || character > ' ';
-	}
-
-	static {
-		try {
-			Method method = MinecraftReflection
-					.getMinecraftClass("SharedConstants")
-					.getDeclaredMethod("a", new Class[] {});
-			method.setAccessible(true);
-
-			InputGuiUtils.ALLOWED_CHARS = (String) method.invoke(null, new Object[] {});
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		return character >= ' ' && character != '';
 	}
 }
