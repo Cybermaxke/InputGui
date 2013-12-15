@@ -44,14 +44,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.comphenix.protocol.Packets.Server;
-import com.comphenix.protocol.Packets.Client;
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.PacketType.Play.Server;
+import com.comphenix.protocol.PacketType.Play.Client;
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.ListeningWhitelist;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.events.PacketListener;
+import com.google.common.base.Charsets;
 
 public class InputGuiPacketListener implements PacketListener {
 	private InputGuiPlugin plugin;
@@ -63,26 +64,27 @@ public class InputGuiPacketListener implements PacketListener {
 
 	@Override
 	public ListeningWhitelist getSendingWhitelist() {
-		return new ListeningWhitelist(ListenerPriority.NORMAL,
+		return ListeningWhitelist.newBuilder().normal().types(
+				Server.BLOCK_CHANGE,
 				Server.BLOCK_CHANGE,
 				Server.CLOSE_WINDOW,
 				Server.OPEN_WINDOW,
-				Server.RESPAWN);
+				Server.RESPAWN).build();
 	}
 
 	@Override
 	public ListeningWhitelist getReceivingWhitelist() {
-		return new ListeningWhitelist(ListenerPriority.NORMAL,
+		return ListeningWhitelist.newBuilder().normal().types(
 				Client.CUSTOM_PAYLOAD,
 				Client.CHAT,
 				Client.ARM_ANIMATION,
-				Client.PLACE,
+				Client.BLOCK_PLACE,
 				Client.WINDOW_CLICK,
 				Client.USE_ENTITY,
 				Client.BLOCK_DIG,
-				Client.BLOCK_ITEM_SWITCH,
+				Client.CLOSE_WINDOW,
 				Client.SET_CREATIVE_SLOT,
-				Client.UPDATE_SIGN);
+				Client.UPDATE_SIGN).build();
 	}
 
 	@Override
@@ -105,24 +107,31 @@ public class InputGuiPacketListener implements PacketListener {
 		/**
 		 * Cancel block changes for the block until the gui closes.
 		 */
-		int id = e.getPacketID();
-		if (id == Server.BLOCK_CHANGE) {
+		PacketType type = e.getPacketType();
+		if (type.equals(Server.BLOCK_CHANGE)) {
 			int x = packet.getIntegers().read(0);
 			int y = packet.getIntegers().read(1);
 			int z = packet.getIntegers().read(2);
-			int material = packet.getIntegers().read(3);
+
+			Material material;
+			if (ProtocolLibrary.getProtocolManager().getMinecraftVersion()
+					.getVersion().startsWith("1.6.")) {
+				material = Material.getMaterial(packet.getIntegers().read(3));
+			} else {
+				material = packet.getBlocks().read(0);
+			}
 
 			Location l = player.getFakeBlockLocation();
 			if (l.getBlockX() == x && l.getBlockY() == y && l.getBlockZ() == z && 
-					material != Material.COMMAND.getId()) {
+					material != Material.COMMAND) {
 				e.setCancelled(true);
 				return;
 			}
 		/**
 		 * If this packets are send, the gui can't be open.
 		 */
-		} else if (player.isCheckingPackets() && (id == Server.CLOSE_WINDOW ||
-				id == Server.OPEN_WINDOW)) {
+		} else if (player.isCheckingPackets() && (type.equals(Server.CLOSE_WINDOW) ||
+				type.equals(Server.OPEN_WINDOW))) {
 			player.setCancelled();
 		}
 	}
@@ -134,8 +143,8 @@ public class InputGuiPacketListener implements PacketListener {
 		Player player = e.getPlayer();
 		InputGuiPlayer iplayer = this.plugin.getPlayer(player);
 
-		int id = e.getPacketID();
-		if (id == Client.CUSTOM_PAYLOAD) {
+		PacketType type = e.getPacketType();
+		if (type.equals(Client.CUSTOM_PAYLOAD)) {
 			String tag = packet.getStrings().read(0);
 			byte[] data = packet.getByteArrays().read(0);
 
@@ -147,6 +156,20 @@ public class InputGuiPacketListener implements PacketListener {
 				DataInputStream dis = new DataInputStream(bis);
 
 				try {
+					byte action = 0;
+
+					if (!ProtocolLibrary.getProtocolManager().getMinecraftVersion()
+							.getVersion().startsWith("1.6.")) {
+						action = dis.readByte();
+					}
+
+					/**
+					 * TODO: Editing a command block minecraft, not supported yet.
+					 */
+					if (action == 1) {
+						return;
+					}
+
 					/**
 					 * Reading the coords of the fake block location.
 					 */
@@ -242,7 +265,15 @@ public class InputGuiPacketListener implements PacketListener {
 					ItemMeta meta = renamed.getItemMeta();
 					String oldName = meta != null && meta.hasDisplayName() ? meta.getDisplayName() 
 							: null;
-					String newName = (data == null || data.length < 1) ? "" : new String(data);
+					String newName = null;
+
+					if (ProtocolLibrary.getProtocolManager().getMinecraftVersion()
+							.getVersion().startsWith("1.6.")) {
+						newName = (data == null || data.length < 1) ? "" : new String(data);
+					} else {
+						newName = (data == null || data.length < 1) ? ""
+								: new String(data, Charsets.UTF_8);
+					}
 
 					ItemRenameEvent event = new ItemRenameEvent(player, view, oldName, newName);
 					Bukkit.getPluginManager().callEvent(event);
@@ -264,7 +295,7 @@ public class InputGuiPacketListener implements PacketListener {
 					e.setCancelled(true);
 				}
 			}
-		} else if (id == Client.UPDATE_SIGN) {
+		} else if (type.equals(Client.UPDATE_SIGN)) {
 			int x = packet.getIntegers().read(0);
 			int y = packet.getIntegers().read(1);
 			int z = packet.getIntegers().read(2);
@@ -291,21 +322,22 @@ public class InputGuiPacketListener implements PacketListener {
 		/**
 		 * Close the gui once the player is doing something that can't happen when the gui open.
 		 */
-		} else if (iplayer.isGuiOpen() && iplayer.isCheckingPackets() && (id == Client.CHAT ||
-				id == Client.ARM_ANIMATION ||
-				id == Client.PLACE ||
-				id == Client.WINDOW_CLICK ||
-				id == Client.USE_ENTITY ||
-				id == Client.BLOCK_DIG ||
-				id == Client.BLOCK_ITEM_SWITCH ||
-				id == Client.SET_CREATIVE_SLOT)) {
+		} else if (iplayer.isGuiOpen() && iplayer.isCheckingPackets() && (
+				type.equals(Client.CHAT) ||
+				type.equals(Client.ARM_ANIMATION) ||
+				type.equals(Client.BLOCK_PLACE) ||
+				type.equals(Client.WINDOW_CLICK) ||
+				type.equals(Client.USE_ENTITY) ||
+				type.equals(Client.BLOCK_DIG) ||
+				type.equals(Client.CLOSE_WINDOW) ||
+				type.equals(Client.SET_CREATIVE_SLOT))) {
 			iplayer.setCancelled();
 		}
 
 		/**
 		 * Update the slots after someone clicked on it, this fixes glitches.
 		 */
-		if (id == Client.WINDOW_CLICK) {
+		if (type.equals(Client.WINDOW_CLICK)) {
 			InventoryView view = player.getOpenInventory();
 
 			if (view != null && view.getTopInventory() instanceof AnvilInventory) {

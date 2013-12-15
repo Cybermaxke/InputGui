@@ -29,8 +29,8 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
+import com.comphenix.protocol.PacketType.Play.Server;
 import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.Packets.Server;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.injector.BukkitUnwrapper;
 import com.comphenix.protocol.utility.MinecraftReflection;
@@ -110,7 +110,7 @@ public class InputGuiUtils {
 		 */
 		if (ProtocolLibrary.getProtocolManager().getMinecraftVersion()
 				.getVersion().startsWith("1.6.")) {
-			PacketContainer packet = new PacketContainer(0x85);
+			PacketContainer packet = new PacketContainer(Server.OPEN_SIGN_ENTITY);
 
 			packet.getIntegers().write(0, 0);
 			packet.getIntegers().write(1, location.getBlockX());
@@ -123,7 +123,7 @@ public class InputGuiUtils {
 		 * TODO: Check changes in ProtocolLib
 		 */
 		} else {
-			PacketContainer packet = new PacketContainer(0x36);
+			PacketContainer packet = new PacketContainer(Server.OPEN_SIGN_ENTITY);
 
 			packet.getIntegers().write(0, location.getBlockX());
 			packet.getIntegers().write(1, location.getBlockY());
