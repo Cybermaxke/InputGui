@@ -56,6 +56,7 @@ import com.comphenix.protocol.events.PacketListener;
 import com.comphenix.protocol.injector.GamePhase;
 
 import com.google.common.base.Charsets;
+import java.io.EOFException;
 
 public class InputGuiPacketListener implements PacketListener {
 	private InputGuiPlugin plugin;
@@ -190,13 +191,9 @@ public class InputGuiPacketListener implements PacketListener {
 					 * Reading the string.
 					 */
 					StringBuilder builder = new StringBuilder();
-
-					short stringLength = dis.readShort();
-					for (int i = 0; i < stringLength; i++) {
-						builder.append(dis.readChar());
-					}
-
-					String string = builder.toString();
+					byte[] oBytes = new byte[dis.available()];
+					dis.read(oBytes);
+					String string = new String(oBytes, Charsets.UTF_8).trim();
 
 					/**
 					 * We are using a custom input gui.
