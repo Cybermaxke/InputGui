@@ -174,7 +174,7 @@ public class InputGuiPacketListener implements PacketListener {
 					}
 
 					/**
-					 * TODO: Editing a command block minecraft, not supported yet.
+					 * TODO: Editing a command block minecart, not supported yet.
 					 */
 					if (action == 1) {
 						return;
@@ -190,11 +190,20 @@ public class InputGuiPacketListener implements PacketListener {
 					/**
 					 * Reading the string.
 					 */
-					StringBuilder builder = new StringBuilder();
-					byte[] oBytes = new byte[dis.available()];
-					dis.read(oBytes);
-					String string = new String(oBytes, Charsets.UTF_8).trim();
-
+					String string;
+					if (ProtocolLibrary.getProtocolManager().getMinecraftVersion().getVersion().startsWith("1.6.")){
+						StringBuilder builder = new StringBuilder();
+						short stringLength = dis.readShort();
+						for (int i = 0; i < stringLength; i++) {
+								builder.append(dis.readChar());
+						}
+						string = builder.toString();
+					}else{
+						StringBuilder builder = new StringBuilder();
+						byte[] oBytes = new byte[dis.available()];
+						dis.read(oBytes);
+						string = new String(oBytes, Charsets.UTF_8).trim();
+					}
 					/**
 					 * We are using a custom input gui.
 					 */
